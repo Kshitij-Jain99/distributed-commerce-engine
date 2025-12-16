@@ -1,27 +1,28 @@
 # ---------- BUILD STAGE ----------
 FROM golang:1.25-alpine AS builder
 
+RUN apk --no-cache add gcc g++ make ca-certificates
+
 WORKDIR /app
 
-RUN apk --no-cache add ca-certificates
-
-# Copy go mod files from root
+# Copy module files
 COPY go.mod go.sum ./
-RUN go mod download
+
+# Copy vendor directory (same logic as first Dockerfile)
+COPY vendor vendor
 
 # Copy account service source
 COPY account account
 
-# Build account service
-WORKDIR /app/account/cmd/account
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o account-service
+# Build account service using vendored deps
+RUN GO111MODULE=on go build -mod=vendor -o /go/bin/account-service ./account/cmd/account
 
 # ---------- RUNTIME STAGE ----------
 FROM alpine:3.19
 
-WORKDIR /app
+WORKDIR /usr/bin
 
-COPY --from=builder /app/account/cmd/account/account-service ./account-service
+COPY --from=builder /go/bin/account-service .
 
 EXPOSE 8080
-CMD ["./account-service"]
+CMD ["account-service"]

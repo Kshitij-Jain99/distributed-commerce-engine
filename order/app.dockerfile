@@ -6,9 +6,10 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY order ./order
+COPY . .
 
 RUN CGO_ENABLED=0 go build -o order-service ./order/cmd/order
+
 
 FROM alpine:3.19
 RUN apk --no-cache add ca-certificates
